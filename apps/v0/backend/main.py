@@ -1,7 +1,7 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from typing import List, Literal
+from typing import List, Literal, Optional
 from backend.utils import async_generate_text_and_image, async_generate_with_image_input
 import backend.config as config  # keep for reference if needed
 import traceback
@@ -18,7 +18,7 @@ class TextGenerateRequest(BaseModel):
     prompt: str
 
 class ImageTextGenerateRequest(BaseModel):
-    text: str
+    text: Optional[str] = None
     image: str
 
 class Part(BaseModel):
@@ -35,7 +35,7 @@ async def generate(request: TextGenerateRequest):
     """
     try:
         results = []
-        print(request)
+        # print(f"prompt: {request.prompt}")
         async for part in async_generate_text_and_image(request.prompt):
             results.append(part)
         return GenerationResponse(results=results)
@@ -50,7 +50,8 @@ async def generate_with_image(request: ImageTextGenerateRequest):
     """
     try:
         results = []
-        async for part in async_generate_with_image_input(request.text, request.image):
+        text = request.text if request.text else config.DEFAULT_TEXT
+        async for part in async_generate_with_image_input(text, request.image):
             results.append(part)
         return GenerationResponse(results=results)
     except Exception as e:

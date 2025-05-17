@@ -1,6 +1,6 @@
 from google import genai
 from google.genai import types
-from typing import Union, List, Generator, Dict
+from typing import Union, List, Generator, Dict, Optional
 from PIL import Image
 from io import BytesIO
 import base64
@@ -40,15 +40,19 @@ async def async_generate_text_and_image(prompt):
         elif hasattr(part, 'inline_data') and part.inline_data is not None:
             yield {'type': 'image', 'data': bytes_to_base64(part.inline_data.data)}
 
-async def async_generate_with_image_input(text, image_path):
+async def async_generate_with_image_input(text: Optional[str], image_path: str):
     # Validate that the image input is a base64 data URI
     if not isinstance(image_path, str) or not image_path.startswith("data:image/"):
         raise ValueError("Invalid image input: expected a base64 Data URI starting with 'data:image/'")
     # Decode the base64 string into a PIL Image
     image = decode_base64_image(image_path)
+    contents = []
+    if text:
+        contents.append(text)
+    contents.append(image)
     response = await client.aio.models.generate_content(
         model=os.getenv("MODEL"),
-        contents=[text, image],
+        contents=contents,
         config=types.GenerateContentConfig(
             response_modalities=['TEXT', 'IMAGE']
         )
